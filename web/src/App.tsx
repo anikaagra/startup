@@ -1,4 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { IS_DEMO } from './lib/api';
+import { DemoBar } from './components/DemoBar';
 import { session } from './lib/session';
 import { Welcome } from './pages/patient/Welcome';
 import { Intake } from './pages/patient/Intake';
@@ -10,7 +12,10 @@ import { ProviderList } from './pages/provider/ProviderList';
 import { ProviderPatient } from './pages/provider/ProviderPatient';
 
 export function App() {
+  useLocation(); // re-render on navigation so the session check stays current
   return (
+    <>
+    {IS_DEMO && <DemoBar />}
     <Routes>
       <Route path="/" element={session.get() ? <Home /> : <Welcome />} />
       <Route path="/setup" element={<Intake />} />
@@ -21,5 +26,6 @@ export function App() {
       <Route path="/provider/:code/patients/:id" element={<ProviderPatient />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

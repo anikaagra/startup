@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Screen, ErrorNote } from '../../components/Screen';
 import { StatusSignal } from '../../components/StatusSignal';
 import { RiseTrace } from '../../components/RiseTrace';
-import { api } from '../../lib/api';
+import { api, toExport } from '../../lib/api';
 import { fmtDate, sexLabel, signed } from '../../lib/format';
 import type { Patient } from '../../lib/types';
 
@@ -15,16 +15,17 @@ export function ProviderPatient() {
   const [p, setP] = useState<Patient | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showJson, setShowJson] = useState(false);
   useEffect(() => { api.providerPatient(code, id).then(setP).catch((e: Error) => setErr(e.message)); }, [code, id]);
   if (err) return <Screen wide back={{ to: `/provider/${code}`, label: 'All check-ins' }}><ErrorNote message={err} /></Screen>;
   if (!p) return <Screen wide><p className="muted">Loading patient…</p></Screen>;
 
   const last = p.checks[p.checks.length - 1];
   const base = p.checks[0];
+  const json = JSON.stringify(toExport(p), null, 2);
   async function copyExport() {
-    const data = await (await fetch(api.exportUrl(code, id))).text();
-    try { await navigator.clipboard.writeText(data); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.open(api.exportUrl(code, id), '_blank'); }
+    try { await navigator.clipboard.writeText(json); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { setShowJson(true); }
   }
 
   return (
@@ -36,10 +37,11 @@ export function ProviderPatient() {
         </div>
         <div className="row">
           <button className="rise-btn rise-btn--secondary" onClick={copyExport}>{copied ? 'Copied' : 'Copy record data'}</button>
-          <a className="rise-btn rise-btn--quiet" href={api.exportUrl(code, id)} target="_blank" rel="noreferrer">View JSON</a>
+          <button className="rise-btn rise-btn--quiet" onClick={() => setShowJson((v) => !v)}>{showJson ? 'Hide record data' : 'View record data'}</button>
         </div>
       </div>
 
+      {showJson && <pre className="rise-card tbl-wrap" style={{ margin: 0, fontSize: 13, lineHeight: '20px', maxHeight: 360, overflow: 'auto', fontFamily: 'var(--font-mono)' }}>{json}</pre>}
       <div className="detail-grid">
         <div className="stack" style={{ gap: 24 }}>
           {last ? (

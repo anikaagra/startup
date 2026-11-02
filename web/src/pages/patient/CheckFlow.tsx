@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Screen, ErrorNote } from '../../components/Screen';
 import { CameraStage, type Capture } from '../../components/CameraStage';
-import { api } from '../../lib/api';
+import { api, IS_DEMO } from '../../lib/api';
+import { DemoCamera } from '../../components/DemoCamera';
 import { session } from '../../lib/session';
 import { say } from '../../lib/speech';
 
@@ -84,7 +85,7 @@ export function CheckFlow() {
   if (step === 'camera') return (
     <Screen back={{ to: '/', label: 'Cancel' }}>
       <ErrorNote message={err} />
-      <CameraStage onDone={onCapture} onManual={() => setStep('manual')} />
+      {IS_DEMO ? <DemoCamera onDone={(c) => save(c, 'demo')} /> : <CameraStage onDone={onCapture} onManual={() => setStep('manual')} />}
     </Screen>
   );
 

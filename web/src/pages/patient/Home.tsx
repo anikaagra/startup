@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Screen, ErrorNote } from '../../components/Screen';
 import { StatusSignal } from '../../components/StatusSignal';
 import { RiseTrace } from '../../components/RiseTrace';
@@ -11,14 +11,15 @@ import type { Patient } from '../../lib/types';
 export function Home() {
   const [p, setP] = useState<Patient | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const nav = useNavigate();
   useEffect(() => {
     const id = session.get();
     if (!id) return;
     api.getPatient(id).then(setP).catch((e: Error) => {
-      if (/not found/i.test(e.message)) { session.clear(); window.location.assign('/'); }
+      if (/not found/i.test(e.message)) { session.clear(); nav('/', { replace: true }); }
       else setErr(e.message);
     });
-  }, []);
+  }, [nav]);
 
   if (err) return <Screen><ErrorNote message={err} /></Screen>;
   if (!p) return <Screen><p className="muted">Loading your checks…</p></Screen>;
@@ -59,7 +60,7 @@ export function Home() {
           </ul>
         </section>
       )}
-      <button className="rise-btn rise-btn--quiet" onClick={() => { session.clear(); window.location.assign('/'); }}>Sign out of this phone</button>
+      <button className="rise-btn rise-btn--quiet" onClick={() => { session.clear(); nav('/', { replace: true }); }}>Sign out of this phone</button>
     </Screen>
   );
 }

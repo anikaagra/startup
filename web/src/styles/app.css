@@ -84,3 +84,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 16px; line-height
 .stack > .rise-signal, .screen__body > .rise-signal { justify-self: start; }
 .rise-signal { width: max-content; }
 .prov-list .rise-row { grid-template-columns: minmax(220px, 2fr) 132px 128px minmax(150px, 1fr) 130px; }
+
+/* Demo build only */
+.demobar { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; justify-content: space-between;
+  padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-2) max(var(--space-4), env(safe-area-inset-left, 0px));
+  background: var(--brand); color: var(--on-brand); font: 400 15px/22px var(--font-sans); }
+.demobar__links { display: flex; gap: var(--space-4); align-items: center; }
+.demobar a, .demobar button { color: var(--on-brand); font: 700 15px/22px var(--font-sans); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }

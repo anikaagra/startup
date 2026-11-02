@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Screen, ErrorNote } from '../../components/Screen';
 import { api } from '../../lib/api';
 import { session } from '../../lib/session';
@@ -59,6 +60,7 @@ const STEPS: Step[] = [
 ];
 
 export function Intake() {
+  const nav = useNavigate();
   const [a, setA] = useState<A>({});
   const [i, setI] = useState(0);
   const [err, setErr] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export function Intake() {
     try {
       const p = await api.createPatient({ ...a, age: Number(a.age), startWeightLb: Number(a.startWeightLb), currentWeightLb: Number(a.currentWeightLb) });
       session.set(p.id);
-      window.location.assign('/');
+      nav('/', { replace: true });
     } catch (ex) { setErr((ex as Error).message); setBusy(false); }
   }
 
