@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.db
+*.db-*
+.env
+.DS_Store
+web/public/mediapipe/
+web/public/models/
+*.tsbuildinfo

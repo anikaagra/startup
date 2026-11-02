@@ -1,0 +1,10 @@
+{
+  "name": "Rise",
+  "short_name": "Rise",
+  "description": "A monthly muscle check on your phone.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#123f7a",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

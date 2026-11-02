@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: rise
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      name: rise-data
+      mountPath: /data
+      sizeGB: 1

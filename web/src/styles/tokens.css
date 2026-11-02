@@ -1,0 +1,82 @@
+/* Rise tokens, generated from the Rise Design System tokens.json. Edit tokens there, not here. */
+:root {
+  --paper: #f4f7fb;
+  --paper-raised: #ffffff;
+  --tint: #dce8f5;
+  --ink: #0a2342;
+  --ink-muted: #4a6380;
+  --line: #c5d4e5;
+  --line-strong: #6e87a6;
+  --brand: #123f7a;
+  --brand-strong: #0b2e5c;
+  --on-brand: #ffffff;
+  --trace: #2e86d1;
+  --focus: #0b6bcb;
+  --steady: #1d5fa8;
+  --steady-tint: #e1ecf8;
+  --watch: #9a5200;
+  --watch-tint: #fbebd6;
+  --act: #b3261e;
+  --act-tint: #fbe3e1;
+  --shadow-sheet: 0 -8px 24px rgba(10, 35, 66, 0.12);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --font-sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --paper: #08172b;
+  --paper-raised: #0f2240;
+  --tint: #16335a;
+  --ink: #eaf2fb;
+  --ink-muted: #9db3cc;
+  --line: #28456b;
+  --line-strong: #5e7fa6;
+  --brand: #8cc2f2;
+  --brand-strong: #b5d8f7;
+  --on-brand: #06182e;
+  --trace: #5bb0f0;
+  --focus: #8cc2f2;
+  --steady: #7db8f2;
+  --steady-tint: #12305a;
+  --watch: #f0a64a;
+  --watch-tint: #3a2a12;
+  --act: #ff8a80;
+  --act-tint: #3d1a1a;
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #08172b;
+  --paper-raised: #0f2240;
+  --tint: #16335a;
+  --ink: #eaf2fb;
+  --ink-muted: #9db3cc;
+  --line: #28456b;
+  --line-strong: #5e7fa6;
+  --brand: #8cc2f2;
+  --brand-strong: #b5d8f7;
+  --on-brand: #06182e;
+  --trace: #5bb0f0;
+  --focus: #8cc2f2;
+  --steady: #7db8f2;
+  --steady-tint: #12305a;
+  --watch: #f0a64a;
+  --watch-tint: #3a2a12;
+  --act: #ff8a80;
+  --act-tint: #3d1a1a;
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}

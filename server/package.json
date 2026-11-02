@@ -1,0 +1,14 @@
+{
+  "name": "rise-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --no-warnings=ExperimentalWarning src/index.js",
+    "start": "node --no-warnings=ExperimentalWarning src/index.js",
+    "seed": "node --no-warnings=ExperimentalWarning src/seed.js",
+    "test": "node --no-warnings=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "express": "4.21.2"
+  }
+}
