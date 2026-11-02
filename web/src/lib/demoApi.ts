@@ -17,7 +17,7 @@ function toRow(id: number, patientId: string, c: Record<string, unknown>, r: Che
     method: (c.method as string) ?? 'phone-video', state: r.state, flagged: r.flagged, providerFlag: r.providerFlag, verdict: r.verdict,
     action: r.action, reason: r.reason, retestDate: r.retestDate, belowNorm: r.belowNorm, normCutoff: r.normCutoff, normBand: r.normBand,
     weightLb: (c.weightLb as number) ?? null, bodyCompMethod: (c.bodyCompMethod as Check['bodyCompMethod']) ?? null, asmKg: (c.asmKg as number) ?? null,
-    gripKg: (c.gripKg as number) ?? null, domains: r.domains, reasons: r.reasons,
+    gripKg: (c.gripKg as number) ?? null, domains: r.domains, reasons: r.reasons, bodyCompDetail: (c.bodyCompDetail as Record<string, unknown>) ?? null,
   };
 }
 

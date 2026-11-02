@@ -7,10 +7,11 @@ export type Check = {
   state: State; flagged: boolean; providerFlag: boolean; verdict: string; action: string; reason: string;
   retestDate: string; belowNorm: boolean; normCutoff: number; normBand: string;
   weightLb: number | null; bodyCompMethod: BodyCompMethod | null; asmKg: number | null; gripKg: number | null;
+  bodyCompDetail: Record<string, unknown> | null;
   domains: Domains | null; reasons: string[];
 };
 
-export type BodyCompMethod = 'scan-app' | 'smart-scale' | 'dexa' | 'clinic-bia' | 'other';
+export type BodyCompMethod = 'rise-scan' | 'scan-app' | 'smart-scale' | 'dexa' | 'clinic-bia' | 'other';
 export type Domain = { state: State | null; measured: boolean; patientLine: string; reasons: string[] };
 export type Domains = {
   function: Domain & { value: number; baseline: number; change: number | null; belowNorm: boolean; normCutoff: number; normBand: string; normText: string };

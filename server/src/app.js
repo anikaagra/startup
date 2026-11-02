@@ -13,6 +13,15 @@ const METHODS = Object.keys(METHOD_LABEL);
 class Bad extends Error { constructor(m) { super(m); this.status = 400; } }
 const need = (cond, msg) => { if (!cond) throw new Bad(msg); };
 const num = (v) => (v === '' || v == null ? null : Number(v));
+// Where body composition numbers came from (photo scan measurements, import file info). Small, flat, scalar-only.
+function cleanDetail(d) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(d).slice(0, 12)) {
+    if (/^[A-Za-z]{1,24}$/.test(k) && (typeof v === 'number' || (typeof v === 'string' && v.length <= 120) || v === null)) out[k] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
 
 export function createApp(db) {
   const app = express();
@@ -85,6 +94,7 @@ export function createApp(db) {
       method: b.method === 'demo' ? 'demo' : 'phone-video', createdAt: b.createdAt,
       weightLb: num(b.weightLb), leanMassLb: num(b.leanMassLb), bodyFatPct: num(b.bodyFatPct), asmKg: num(b.asmKg),
       bodyCompMethod: METHODS.includes(b.bodyCompMethod) ? b.bodyCompMethod : null, gripKg: num(b.gripKg),
+      bodyCompDetail: cleanDetail(b.bodyCompDetail),
     };
     need(c.weightLb == null || (c.weightLb >= 60 && c.weightLb <= 800), 'Weight must be between 60 and 800 lb.');
     need(c.leanMassLb == null || (c.leanMassLb >= 30 && c.leanMassLb <= 300), 'Lean mass must be between 30 and 300 lb.');

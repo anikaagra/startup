@@ -69,3 +69,13 @@ test('body composition and grip are stored, validated and combined', async () =>
   const obs = exp.checks[1].observations.map((o) => o.measure);
   assert.deepEqual(obs, ['30-second chair stand', 'Body weight', 'Lean (fat-free) mass', 'Handgrip strength']);
 });
+
+test('records where body composition came from', async () => {
+  const p = await (await post('/api/patients', { providerCode: 'DEMO42', firstName: 'Di', age: 58, sex: 'female', heightIn: 64 })).json();
+  await post(`/api/patients/${p.id}/checks`, { stands: 13, weightLb: 180, leanMassLb: 104, bodyFatPct: 42.2, bodyCompMethod: 'rise-scan',
+    bodyCompDetail: { source: 'rise-scan', neckIn: 13.4, waistIn: 36.2, hipIn: 43.1, nested: { no: 1 }, ['x'.repeat(40)]: 1 } });
+  const d = await (await fetch(`${base}/api/providers/DEMO42/patients/${p.id}`)).json();
+  assert.deepEqual(d.checks[0].bodyCompDetail, { source: 'rise-scan', neckIn: 13.4, waistIn: 36.2, hipIn: 43.1 });
+  assert.equal(d.checks[0].domains.mass.methodLabel, 'Rise phone scan');
+  assert.equal(d.checks[0].domains.mass.estimate, true);
+});

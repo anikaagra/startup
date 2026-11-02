@@ -103,3 +103,4 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 16px; line-height
 .mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
 .mini-stats > div { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); }
 .mini-stats b { display: block; font: 500 24px/30px var(--font-mono); }
+button.rise-choice { width: 100%; text-align: left; color: var(--ink); }

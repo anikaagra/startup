@@ -4,6 +4,9 @@ import { Screen, ErrorNote } from '../../components/Screen';
 import { CameraStage, type Capture } from '../../components/CameraStage';
 import { api, IS_DEMO } from '../../lib/api';
 import { DemoCamera } from '../../components/DemoCamera';
+import { BodyScanCapture, type PhoneScan } from '../../components/BodyScanCapture';
+import { BodyCompImport } from '../../components/BodyCompImport';
+import type { ImportedScan } from '../../lib/bodyScan/importParser';
 import { session } from '../../lib/session';
 import { say } from '../../lib/speech';
 
@@ -11,7 +14,7 @@ type Step = 'readiness' | 'scan' | 'grip' | 'setup' | 'camera' | 'manual' | 'sav
 import type { BodyCompMethod, Patient } from '../../lib/types';
 
 const METHODS: [BodyCompMethod, string][] = [
-  ['scan-app', 'Phone body scan app'], ['smart-scale', 'Smart scale at home'], ['dexa', 'DEXA scan'], ['clinic-bia', "My clinic's body composition scale"], ['other', 'Something else'],
+  ['rise-scan', 'Rise phone scan'], ['scan-app', 'Another body scan app'], ['smart-scale', 'Smart scale at home'], ['dexa', 'DEXA scan'], ['clinic-bia', "My clinic's body composition scale"], ['other', 'Something else'],
 ];
 const LB_PER_KG = 2.20462;
 
@@ -41,6 +44,24 @@ export function CheckFlow() {
   const [grip, setGrip] = useState('');
   const [gripUnit, setGripUnit] = useState<'kg' | 'lb'>('kg');
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [scanMode, setScanMode] = useState<'choose' | 'phone' | 'import' | 'review'>('choose');
+  const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
+  const [importNotes, setImportNotes] = useState<string[]>([]);
+  const fromPhone = (r: PhoneScan) => {
+    setWeight(String(r.weightLb)); setLean(String(r.leanMassLb)); setFat(String(r.bodyFatPct)); setAsm(''); setMethod('rise-scan');
+    setDetail({ source: 'rise-scan', neckIn: r.neckIn, waistIn: r.waistIn, hipIn: r.hipIn, equation: 'US Navy (Hodgdon & Beckett 1984)' });
+    setImportNotes(['From your Rise scan. Check the numbers, then continue.']); setScanMode('review');
+  };
+  const fromImport = (r: ImportedScan) => {
+    if (r.weightLb != null) setWeight(String(r.weightLb));
+    if (r.leanMassLb != null) setLean(String(r.leanMassLb));
+    if (r.bodyFatPct != null) setFat(String(r.bodyFatPct));
+    if (r.asmKg != null) setAsm(String(r.asmKg));
+    setMethod(r.sourceGuess === 'other' ? '' : r.sourceGuess);
+    setDetail({ source: 'import', from: r.sourceName, measuredOn: r.date, rowsInFile: r.rows });
+    setImportNotes([`Imported${r.sourceName ? ` from ${r.sourceName}` : ''}${r.date ? `, measured ${r.date}` : ''}. Check the numbers and the device, then continue.`, ...r.warnings]);
+    setScanMode('review');
+  };
   useEffect(() => {
     api.getPatient(session.get()!).then((p) => {
       setPatient(p);
@@ -61,11 +82,12 @@ export function CheckFlow() {
         ...c, method: captureMethod, sleptPoorly, painOrIll,
         weightLb: weight ? Number(weight) : null, leanMassLb: lean ? Number(lean) : null, bodyFatPct: fat ? Number(fat) : null,
         asmKg: asm ? Number(asm) : null, bodyCompMethod: lean || fat || asm ? method || null : null, gripKg: hasGrip ? gripKg : null,
+        bodyCompDetail: lean || fat ? detail : null,
       });
       const last = r.patient.checks[r.patient.checks.length - 1];
       nav(`/result/${last.id}`, { replace: true });
     } catch (e) { setErr((e as Error).message); setStep(captureMethod === 'demo' ? 'manual' : 'camera'); }
-  }, [sleptPoorly, painOrIll, lean, fat, weight, asm, method, hasGrip, gripKg, nav]);
+  }, [sleptPoorly, painOrIll, lean, fat, weight, asm, method, hasGrip, gripKg, detail, nav]);
 
   const onCapture = useCallback((c: Capture) => save(c, 'phone-video'), [save]);
 
@@ -92,12 +114,33 @@ export function CheckFlow() {
     return null;
   };
 
+  if (step === 'scan' && scanMode !== 'review') return (
+    <Screen back={{ to: '/', label: 'Cancel' }} footer={scanMode === 'choose' ? <button className="rise-btn rise-btn--quiet" onClick={() => { setErr(null); setStep('grip'); }}>Skip body scan this time</button> : undefined}>
+      <div className="stack"><div className="rise-label">Step 1 of 3 · Muscle and fat</div><h1 className="display">{scanMode === 'phone' ? 'Scan with your phone' : scanMode === 'import' ? 'Import a body scan' : 'Add your body scan'}</h1></div>
+      {scanMode === 'choose' && (
+        <>
+          <p className="rise-body-lg">We compare how much of the weight you lose is muscle, not just how much you lose. Choose how to add today's numbers.</p>
+          <div className="stack">
+            <button className="rise-choice" onClick={() => setScanMode('phone')}><b>Scan with this phone</b><span className="rise-caption" style={{ marginLeft: 'auto' }}>2 photos</span></button>
+            <button className="rise-choice" onClick={() => setScanMode('import')}><b>Import from a scale, InBody or DEXA</b><span className="rise-caption" style={{ marginLeft: 'auto' }}>CSV file</span></button>
+            <button className="rise-choice" onClick={() => { setDetail({ source: 'typed' }); setImportNotes([]); setScanMode('review'); }}><b>Type the numbers in</b></button>
+          </div>
+          {lastScan?.bodyCompMethod && <p className="rise-caption" style={{ margin: 0 }}>Last time you used: {METHODS.find(([v]) => v === lastScan.bodyCompMethod)?.[1]}. Using the same way each time gives the most reliable comparison.</p>}
+        </>
+      )}
+      {scanMode === 'phone' && <BodyScanCapture sex={patient?.sex ?? 'female'} heightIn={patient?.heightIn ?? null} weightLb={weight} onWeight={setWeight} onDone={fromPhone} onCancel={() => setScanMode('choose')} />}
+      {scanMode === 'import' && <BodyCompImport onDone={fromImport} onCancel={() => setScanMode('choose')} />}
+    </Screen>
+  );
+
   if (step === 'scan') return (
     <Screen back={{ to: '/', label: 'Cancel' }} footer={<>
       <button className="rise-btn rise-btn--primary rise-btn--block" onClick={() => { const e = checkScan(); if (e) return setErr(e); setErr(null); setStep('grip'); }}>
-        {weight || lean ? 'Next' : 'Skip body scan'}</button></>}>
+        {weight || lean ? 'Next' : 'Skip body scan'}</button>
+      <button className="rise-btn rise-btn--quiet" onClick={() => { setErr(null); setScanMode('choose'); }}>Choose another way</button></>}>
       <div className="stack"><div className="rise-label">Step 1 of 3 · Muscle and fat</div><h1 className="display">Add today's body scan</h1></div>
-      <p className="rise-body-lg">Copy the numbers from your body scan app, smart scale or clinic scan. We compare how much of the weight you lose is muscle, not just how much you lose.</p>
+      {importNotes.length ? importNotes.map((n) => <p key={n} className="note">{n}</p>)
+        : <p className="rise-body-lg">Copy the numbers from your body scan app, smart scale or clinic scan.</p>}
       <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="rise-label" style={{ marginBottom: 8 }}>Where are these numbers from?</legend>
         <div className="rise-choices" role="radiogroup">

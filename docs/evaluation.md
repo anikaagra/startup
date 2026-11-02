@@ -24,6 +24,14 @@ Rise asks for today's weight, lean (fat-free) mass and optionally body fat and a
 - If arm-and-leg lean mass and height are available: Watch when appendicular lean mass ÷ height² is below the **EWGSOP2** cut-off (7.0 kg/m² men, 5.5 kg/m² women).
 - Entry checks: lean mass must be less than weight, a device must be chosen, and lean mass plus fat mass must roughly add up to weight.
 
+### Three ways to add body composition
+
+1. **Rise phone scan (estimate).** Two photos, front and side, taken with a 10-second timer or uploaded. On the phone, MediaPipe's pose model finds the body outline and landmarks. Known height sets the scale. Width and depth at the neck, waist and hips give each circumference (ellipse approximation), and the U.S. Navy equations (Hodgdon & Beckett, 1984) estimate body fat. Lean mass = weight × (1 − body fat). Photos never leave the phone. Stored as method `rise-scan` with the three circumferences, and labeled as an estimate for providers.
+2. **Import a file.** CSV or JSON exports from smart scales (Withings, Renpho, Eufy and others), InBody and DEXA services. Rise reads weight, lean (fat-free) mass, body fat % and appendicular lean mass by column name, uses the newest row, converts kg to lb, derives lean mass from weight and fat when needed, and never treats skeletal muscle mass as lean mass. The patient reviews the numbers before saving.
+3. **Type the numbers in.**
+
+Whichever way is used, the device is saved with the scan, and comparisons only use scans from the same device.
+
 ## 3. Grip strength (optional, home dynamometer, best of 3)
 
 - Watch below the **EWGSOP2** cut-off (27 kg men, 16 kg women) or after a **10%** drop from the first grip.

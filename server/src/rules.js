@@ -9,7 +9,7 @@ export const STATE_RANK = { checkin: 0, watch: 1, steady: 2 };
 const worst = (...s) => s.filter(Boolean).sort((a, b) => STATE_RANK[a] - STATE_RANK[b])[0] ?? 'steady';
 
 export const METHOD_LABEL = {
-  'scan-app': 'phone body scan', 'smart-scale': 'smart scale', dexa: 'DEXA scan', 'clinic-bia': 'clinic body composition scale', other: 'other device',
+  'rise-scan': 'Rise phone scan', 'scan-app': 'phone body scan app', 'smart-scale': 'smart scale', dexa: 'DEXA scan', 'clinic-bia': 'clinic body composition scale', other: 'other device',
 };
 
 export function computeTier(p, today = new Date()) {
@@ -77,7 +77,8 @@ export function evaluateMass(p, history, c) {
     lowMuscle = idx < asmCutoff(p.sex);
     if (lowMuscle) reasons.push(`Appendicular muscle index ${r1(idx)} kg/m², below the EWGSOP2 cut-off for ${sexWord(p.sex)} (${asmCutoff(p.sex)})`);
   }
-  const out = { measured: true, method, methodLabel: METHOD_LABEL[method] ?? method, leanMassLb: c.leanMassLb, weightLb: c.weightLb, lowMuscle };
+  const estimate = method === 'rise-scan';
+  const out = { measured: true, method, methodLabel: METHOD_LABEL[method] ?? method, estimate, leanMassLb: c.leanMassLb, weightLb: c.weightLb, lowMuscle };
   if (!base) {
     return { ...out, state: lowMuscle ? 'watch' : 'steady', leanShare: null, baselineDate: null, reasons,
       patientLine: `Lean mass ${r1(c.leanMassLb)} lb. This is your starting point for the ${out.methodLabel}.` };
@@ -92,7 +93,7 @@ export function evaluateMass(p, history, c) {
   const share = Math.max(0, dL) / dW;
   const state = worst(share >= LEAN_SHARE.checkin ? 'checkin' : share >= LEAN_SHARE.watch ? 'watch' : 'steady', lowMuscle ? 'watch' : null);
   if (share >= LEAN_SHARE.watch) {
-    reasons.push(`Lean mass was ${pct(share)} of weight lost since ${monthName(base.createdAt)} (${r1(dL)} of ${r1(dW)} lb, ${out.methodLabel}); GLP-1 trials report about 20–40%`);
+    reasons.push(`Lean mass was ${pct(share)} of weight lost since ${monthName(base.createdAt)} (${r1(dL)} of ${r1(dW)} lb, ${out.methodLabel}${estimate ? ', photo estimate' : ''}); GLP-1 trials report about 20–40%`);
   }
   return { ...out, state, leanShare: r1(share * 100) / 100, baselineDate: base.createdAt, weightLost: r1(dW), leanLost: r1(dL), reasons,
     patientLine: `About ${pct(share)} of the ${r1(dW)} lb you've lost was lean mass (mostly muscle and water). ${share >= LEAN_SHARE.watch ? 'That is more than we would like.' : 'That is in the expected range.'}` };

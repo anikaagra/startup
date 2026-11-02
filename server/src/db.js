@@ -21,7 +21,7 @@ export function openDb(file = process.env.RISE_DB ?? 'rise.db') {
       state TEXT NOT NULL, flagged INTEGER NOT NULL, provider_flag INTEGER NOT NULL,
       verdict TEXT NOT NULL, action TEXT NOT NULL, reason TEXT NOT NULL, retest_date TEXT NOT NULL,
       below_norm INTEGER NOT NULL, norm_cutoff INTEGER NOT NULL, norm_band TEXT NOT NULL,
-      weight_lb REAL, body_comp_method TEXT, asm_kg REAL, grip_kg REAL, domains TEXT, reasons TEXT
+      weight_lb REAL, body_comp_method TEXT, asm_kg REAL, grip_kg REAL, domains TEXT, reasons TEXT, body_comp_detail TEXT
     );
   `);
   // Add columns introduced after the first release to existing databases.
@@ -30,7 +30,7 @@ export function openDb(file = process.env.RISE_DB ?? 'rise.db') {
     if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
   };
   add('patients', 'height_in', 'REAL');
-  for (const [c, t] of [['weight_lb', 'REAL'], ['body_comp_method', 'TEXT'], ['asm_kg', 'REAL'], ['grip_kg', 'REAL'], ['domains', 'TEXT'], ['reasons', 'TEXT']]) add('checks', c, t);
+  for (const [c, t] of [['weight_lb', 'REAL'], ['body_comp_method', 'TEXT'], ['asm_kg', 'REAL'], ['grip_kg', 'REAL'], ['domains', 'TEXT'], ['reasons', 'TEXT'], ['body_comp_detail', 'TEXT']]) add('checks', c, t);
   return db;
 }
 
@@ -55,15 +55,17 @@ export function checkFromRow(r) {
     action: r.action, reason: r.reason, retestDate: r.retest_date, belowNorm: !!r.below_norm,
     normCutoff: r.norm_cutoff, normBand: r.norm_band, weightLb: r.weight_lb, bodyCompMethod: r.body_comp_method,
     asmKg: r.asm_kg, gripKg: r.grip_kg, domains: r.domains ? JSON.parse(r.domains) : null, reasons: r.reasons ? JSON.parse(r.reasons) : [],
+    bodyCompDetail: r.body_comp_detail ? JSON.parse(r.body_comp_detail) : null,
   };
 }
 
 export function insertCheck(db, patientId, c, r) {
   db.prepare(`INSERT INTO checks (patient_id, created_at, stands, duration_sec, confidence, slept_poorly, pain_or_ill, lean_mass_lb,
     body_fat_pct, method, state, flagged, provider_flag, verdict, action, reason, retest_date, below_norm, norm_cutoff, norm_band,
-    weight_lb, body_comp_method, asm_kg, grip_kg, domains, reasons) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    weight_lb, body_comp_method, asm_kg, grip_kg, domains, reasons, body_comp_detail) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     patientId, r.createdAt, c.stands, c.durationSec ?? 30, c.confidence ?? null, c.sleptPoorly ? 1 : 0, c.painOrIll ? 1 : 0,
     c.leanMassLb ?? null, c.bodyFatPct ?? null, c.method ?? 'phone-video', r.state, r.flagged ? 1 : 0, r.providerFlag ? 1 : 0,
     r.verdict, r.action, r.reason, r.retestDate, r.belowNorm ? 1 : 0, r.normCutoff, r.normBand,
-    c.weightLb ?? null, c.bodyCompMethod ?? null, c.asmKg ?? null, c.gripKg ?? null, JSON.stringify(r.domains), JSON.stringify(r.reasons));
+    c.weightLb ?? null, c.bodyCompMethod ?? null, c.asmKg ?? null, c.gripKg ?? null, JSON.stringify(r.domains), JSON.stringify(r.reasons),
+    c.bodyCompDetail ? JSON.stringify(c.bodyCompDetail) : null);
 }

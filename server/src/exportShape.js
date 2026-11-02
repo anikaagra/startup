@@ -9,7 +9,7 @@ export function toExport(p) {
             state: c.domains?.function?.state ?? c.state, belowAgeSexNorm: c.belowNorm, normCutoff: c.normCutoff, normReference: `CDC STEADI ${c.normBand}` },
           ...(c.weightLb != null ? [{ measure: 'Body weight', value: c.weightLb, unit: 'lb' }] : []),
           ...(c.leanMassLb != null ? [{ measure: 'Lean (fat-free) mass', value: c.leanMassLb, unit: 'lb', method: c.bodyCompMethod,
-            state: c.domains?.mass?.state ?? null, leanShareOfWeightLost: c.domains?.mass?.leanShare ?? null }] : []),
+            state: c.domains?.mass?.state ?? null, leanShareOfWeightLost: c.domains?.mass?.leanShare ?? null, source: c.bodyCompDetail ?? null }] : []),
           ...(c.bodyFatPct != null ? [{ measure: 'Body fat', value: c.bodyFatPct, unit: '%', method: c.bodyCompMethod }] : []),
           ...(c.asmKg != null ? [{ measure: 'Appendicular lean mass', value: c.asmKg, unit: 'kg', method: c.bodyCompMethod }] : []),
           ...(c.gripKg != null ? [{ measure: 'Handgrip strength', value: c.gripKg, unit: 'kg', state: c.domains?.grip?.state ?? null,

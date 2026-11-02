@@ -5,7 +5,7 @@ A monthly muscle check on the phone for people taking GLP-1 medications.
 Each check combines three measures of muscle health into one result for the patient and their care team:
 
 - **Leg strength:** a 30-second sit-to-stand recorded and counted on the phone, compared with the patient's baseline and CDC STEADI norms.
-- **Muscle mass:** body composition from the patient's scan app, smart scale or DEXA. Rise tracks what share of the weight lost was lean mass, compared only within the same device.
+- **Muscle mass:** body composition from a **Rise phone scan** (two photos), an **imported file** from a smart scale, InBody or DEXA, or typed in. Rise tracks what share of the weight lost was lean mass, compared only within the same device.
 - **Grip (optional):** a home dynamometer reading, compared with EWGSOP2 cut-offs and the patient's first grip.
 
 Rise turns these into Steady, Watch or Check in, tells the patient one thing to do next, and flags their care team when the plan isn't working. How each result is decided, with every threshold and source, is in [`docs/evaluation.md`](docs/evaluation.md).
@@ -25,7 +25,11 @@ Rise turns these into Steady, Watch or Check in, tells the patient one thing to 
 - **Camera checks before recording:** lens smudge (image sharpness), too close, too far, side view, lighting, phone steady. One fix at a time, spoken and written. Recording starts by itself when everything passes.
 - **Sit-to-stand capture:** on-device pose tracking (MediaPipe), spoken countdown, stands counted aloud, 30-second timer, hip path drawn live. Captures where the legs weren't visible most of the time are rejected with a fix.
 - **Personalized result:** Steady, Watch or Check in, a verdict with the patient's name, one plain-language line per measure, trend chart, one action matched to their tier, limits and the measure that changed (for example protein first when lean share is high), their own goal, and a retest date.
-- **Body composition:** today's weight, lean mass, body fat and optional arm-and-leg lean mass, with the device they came from. Entries are checked for consistency (lean mass under weight, lean plus fat adding up). A phone body-scan SDK (such as Prism Labs or Spren) can replace typing later.
+- **Body composition, three ways:**
+  - *Rise phone scan:* front and side photos (10-second timer, or upload). On-device pose segmentation measures neck, waist and hip; the U.S. Navy equations estimate body fat and lean mass. Photos never leave the phone.
+  - *Import:* CSV or JSON exports from smart scales, InBody or DEXA services, read automatically and reviewed before saving.
+  - *Type it in.*
+  Entries are checked for consistency (lean mass under weight, lean plus fat adding up), and the device is saved so only like-for-like scans are compared.
 - **Grip test (optional):** instructions for a home dynamometer, best of 3, in kg or lb.
 - **Combined result:** one overall state from all measures, with escalation when two measures change at once or both strength tests are low.
 - A manual-count fallback when the camera can't be used, marked as self-reported for providers.
@@ -86,4 +90,5 @@ docs/     Product principles, screens, design system, screenshots
 - **Clinical review.** Risk tiers and Watch/Check-in thresholds are drafts from customer discovery. Set them with clinical advisors.
 - **Validation.** Phone-video counting is labeled a pilot measure. Validate it against in-person 30-second chair stands, including older adults and people with obesity.
 - **Regulatory and privacy.** Have a regulatory advisor review the flagging logic, and complete a HIPAA review before storing real health data.
-- **Body scan and grip.** Replace typed entry with a licensed phone body-scan SDK and a Bluetooth dynamometer.
+- **Body scan accuracy.** Validate the Rise phone scan against DEXA in your target patients before relying on it, or license a validated scan SDK (Prism Labs and Spren both offer one) behind the same `rise-scan` step. See [`docs/legal-notes.md`](docs/legal-notes.md).
+- **Grip.** A Bluetooth dynamometer would remove typing errors.

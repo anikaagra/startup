@@ -84,6 +84,8 @@ export function ProviderPatient() {
                 </div>
                 <p className="rise-caption" style={{ margin: 0 }}>
                   {m.leanShare != null ? `${m.leanLost} lb lean of ${m.weightLost} lb lost since ${fmtDate(m.baselineDate!)}. ` : 'Not enough weight change since the first scan on this device to judge yet (needs 4 lb and 2%). '}
+                  {last.bodyCompDetail?.source === 'rise-scan' ? `Rise phone scan: circumference estimate (neck ${last.bodyCompDetail.neckIn}, waist ${last.bodyCompDetail.waistIn}, hip ${last.bodyCompDetail.hipIn} in; U.S. Navy equation). ` : ''}
+                  {last.bodyCompDetail?.source === 'import' ? `Imported${last.bodyCompDetail.from ? ` from ${last.bodyCompDetail.from}` : ''}${last.bodyCompDetail.measuredOn ? `, measured ${last.bodyCompDetail.measuredOn}` : ''}. ` : ''}
                   GLP-1 trials report lean mass at about 20–40% of weight lost (Dubin et al., 2024); Watch at 40%, Check in at 60% (draft). Only scans from the same device are compared. Lean mass includes water and organs, not just muscle.
                   {m.lowMuscle ? ' Appendicular muscle index is below the EWGSOP2 cut-off.' : ''}
                 </p>
