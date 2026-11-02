@@ -4,6 +4,7 @@ import { Screen, ErrorNote } from '../../components/Screen';
 import { StatusSignal } from '../../components/StatusSignal';
 import { RiseTrace } from '../../components/RiseTrace';
 import { NextStepCard } from '../../components/NextStepCard';
+import { DomainSummary } from '../../components/DomainSummary';
 import { api } from '../../lib/api';
 import { session } from '../../lib/session';
 import { fmtDate, signed } from '../../lib/format';
@@ -35,7 +36,7 @@ export function Result() {
         <h1 className="display-xl">{c.verdict}</h1>
       </div>
       <div className="meter">
-        <div><div className="rise-label">Stands in 30 seconds</div><div className="data-xl">{c.stands}</div></div>
+        <div><div className="rise-label">Sit-to-stand</div><div className="data-xl">{c.stands}<span className="rise-caption"> stands</span></div></div>
         <div className="rise-caption" style={{ textAlign: 'right' }}>
           {change == null ? 'Your starting point' : change === 0 ? 'Same as last check' : `${signed(change)} since ${fmtDate(prev!.createdAt)}`}
           <br />{fmtDate(c.createdAt, { month: 'long', day: 'numeric' })}
@@ -47,18 +48,23 @@ export function Result() {
           <p className="rise-caption" style={{ margin: '8px 0 0' }}>Shaded area: typical for your age and sex.</p>
         </div>
       )}
+      {c.domains && <DomainSummary domains={c.domains} />}
       <NextStepCard state={c.state} action={c.action} reason={c.reason} retestDate={c.retestDate} />
       {c.flagged && <p className="note">You told us you slept badly or felt unwell today, so we won't change your plan on this check alone.</p>}
-      {(c.leanMassLb != null || c.bodyFatPct != null) && (
+      {(c.weightLb != null || c.leanMassLb != null || c.gripKg != null) && (
         <details className="rise-card">
-          <summary className="rise-title" style={{ cursor: 'pointer' }}>Body scan</summary>
+          <summary className="rise-title" style={{ cursor: 'pointer' }}>Today's numbers</summary>
           <dl className="kv" style={{ marginTop: 12 }}>
+            {c.weightLb != null && <><dt>Weight</dt><dd className="rise-num">{c.weightLb} lb</dd></>}
             {c.leanMassLb != null && <><dt>Lean mass</dt><dd className="rise-num">{c.leanMassLb} lb</dd></>}
             {c.bodyFatPct != null && <><dt>Body fat</dt><dd className="rise-num">{c.bodyFatPct}%</dd></>}
+            {c.asmKg != null && <><dt>Arm and leg lean</dt><dd className="rise-num">{c.asmKg} kg</dd></>}
+            {c.gripKg != null && <><dt>Grip</dt><dd className="rise-num">{c.gripKg} kg</dd></>}
+            {c.domains?.mass.methodLabel && <><dt>Scan from</dt><dd>{c.domains.mass.methodLabel}</dd></>}
           </dl>
         </details>
       )}
-      <p className="rise-caption" style={{ margin: 0 }}>Rise tracks changes in strength. It doesn't diagnose. Talk to your care team about any concerns.</p>
+      <p className="rise-caption" style={{ margin: 0 }}>Rise tracks changes in strength and muscle. It doesn't diagnose. Talk to your care team about any concerns.</p>
     </Screen>
   );
 }

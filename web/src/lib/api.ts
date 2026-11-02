@@ -15,17 +15,10 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-/** Record-ready export: one observation per check (mirrors the server's /export route). */
-export function toExport(p: Patient) {
-  return {
-    patient: { id: p.id, firstName: p.firstName, age: p.age, sex: p.sex, tier: p.tier, tierReasons: p.tierReasons },
-    observations: p.checks.map((c) => ({
-      date: c.createdAt.slice(0, 10), measure: '30-second chair stand', value: c.stands, unit: 'repetitions', method: c.method,
-      captureConfidence: c.confidence, state: c.state, readinessFlag: c.flagged, belowAgeSexNorm: c.belowNorm, normCutoff: c.normCutoff,
-      normReference: `CDC STEADI ${c.normBand}`, leanMassLb: c.leanMassLb, bodyFatPct: c.bodyFatPct, actionGiven: c.action,
-    })),
-  };
-}
+/** Record-ready export: one entry per check with its observations (same shape as the server's /export route). */
+// @ts-expect-error plain JS module shared with the server
+import { toExport as shared } from '../../../server/src/exportShape.js';
+export const toExport = (p: Patient): unknown => shared(p);
 
 const serverApi = {
   createPatient: (data: Record<string, unknown>) => req<Patient>('/api/patients', { method: 'POST', body: JSON.stringify(data) }),

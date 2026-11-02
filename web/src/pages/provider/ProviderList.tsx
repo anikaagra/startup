@@ -17,8 +17,13 @@ function Row({ code, p }: { code: string; p: ProviderPatient }) {
       </div>
       {p.state ? <StatusSignal state={p.state} /> : <span className="rise-row__meta">No checks</span>}
       <Sparkline values={p.recent} cutoff={p.normCutoff} />
-      <span className="rise-num">{p.latest != null ? `${p.latest} reps` : '—'}{p.belowNorm ? ' · below avg' : ''}</span>
+      <span className="rise-num" style={{ fontSize: 15 }}>
+        {p.latest != null ? `${p.latest} reps` : '—'}{p.belowNorm ? ' (low)' : ''}
+        {p.leanShare != null && <><br />lean {Math.round(p.leanShare * 100)}% of loss</>}
+        {p.gripKg != null && <><br />grip {p.gripKg} kg</>}
+      </span>
       <span className="rise-row__meta">{p.lastCheck ? fmtDate(p.lastCheck) : '—'}{p.overdue ? ' · overdue' : ''}</span>
+      {p.reasons.length > 0 && p.state !== 'steady' && <span className="rise-row__meta" style={{ gridColumn: '1 / -1' }}>Why: {p.reasons.join('; ')}.</span>}
     </Link>
   );
 }
@@ -55,7 +60,7 @@ export function ProviderList() {
         </div>
         {showSteady && [...steady, ...none].map((p) => <Row key={p.id} code={d.code} p={p} />)}
       </section>
-      <p className="rise-caption" style={{ margin: 0 }}>Sorted by urgency, then risk tier. "Below avg" compares the latest 30-second chair stand with CDC STEADI norms for age and sex.</p>
+      <p className="rise-caption" style={{ margin: 0 }}>Sorted by urgency, then risk tier. Each result combines the 30-second chair stand (vs. CDC STEADI norms), lean share of weight lost (vs. the 20–40% seen in GLP-1 trials) and optional grip (vs. EWGSOP2 cut-offs). "Low" means below the STEADI norm for age and sex.</p>
     </Screen>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Screen, ErrorNote } from '../../components/Screen';
 import { CameraStage, type Capture } from '../../components/CameraStage';
@@ -7,7 +7,13 @@ import { DemoCamera } from '../../components/DemoCamera';
 import { session } from '../../lib/session';
 import { say } from '../../lib/speech';
 
-type Step = 'readiness' | 'scan' | 'setup' | 'camera' | 'manual' | 'saving';
+type Step = 'readiness' | 'scan' | 'grip' | 'setup' | 'camera' | 'manual' | 'saving';
+import type { BodyCompMethod, Patient } from '../../lib/types';
+
+const METHODS: [BodyCompMethod, string][] = [
+  ['scan-app', 'Phone body scan app'], ['smart-scale', 'Smart scale at home'], ['dexa', 'DEXA scan'], ['clinic-bia', "My clinic's body composition scale"], ['other', 'Something else'],
+];
+const LB_PER_KG = 2.20462;
 
 function YesNo({ id, label, value, onChange }: { id: string; label: string; value: boolean | null; onChange: (v: boolean) => void }) {
   return (
@@ -28,20 +34,38 @@ export function CheckFlow() {
   const [painOrIll, setPain] = useState<boolean | null>(null);
   const [lean, setLean] = useState('');
   const [fat, setFat] = useState('');
+  const [weight, setWeight] = useState('');
+  const [asm, setAsm] = useState('');
+  const [method, setMethod] = useState<BodyCompMethod | ''>('');
+  const [hasGrip, setHasGrip] = useState<boolean | null>(null);
+  const [grip, setGrip] = useState('');
+  const [gripUnit, setGripUnit] = useState<'kg' | 'lb'>('kg');
+  const [patient, setPatient] = useState<Patient | null>(null);
+  useEffect(() => {
+    api.getPatient(session.get()!).then((p) => {
+      setPatient(p);
+      const lastScan = [...p.checks].reverse().find((c) => c.bodyCompMethod);
+      if (lastScan?.bodyCompMethod) setMethod(lastScan.bodyCompMethod);
+      if (p.checks.some((c) => c.gripKg != null)) setHasGrip(true);
+    }).catch(() => undefined);
+  }, []);
+  const lastScan = patient ? [...patient.checks].reverse().find((c) => c.bodyCompMethod) : undefined;
+  const gripKg = grip ? Math.round((gripUnit === 'kg' ? Number(grip) : Number(grip) / LB_PER_KG) * 10) / 10 : null;
   const [manual, setManual] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
-  const save = useCallback(async (c: Capture, method: 'phone-video' | 'demo') => {
+  const save = useCallback(async (c: Capture, captureMethod: 'phone-video' | 'demo') => {
     setStep('saving');
     try {
       const r = await api.submitCheck(session.get()!, {
-        ...c, method, sleptPoorly, painOrIll,
-        leanMassLb: lean ? Number(lean) : null, bodyFatPct: fat ? Number(fat) : null,
+        ...c, method: captureMethod, sleptPoorly, painOrIll,
+        weightLb: weight ? Number(weight) : null, leanMassLb: lean ? Number(lean) : null, bodyFatPct: fat ? Number(fat) : null,
+        asmKg: asm ? Number(asm) : null, bodyCompMethod: lean || fat || asm ? method || null : null, gripKg: hasGrip ? gripKg : null,
       });
       const last = r.patient.checks[r.patient.checks.length - 1];
       nav(`/result/${last.id}`, { replace: true });
-    } catch (e) { setErr((e as Error).message); setStep(method === 'demo' ? 'manual' : 'camera'); }
-  }, [sleptPoorly, painOrIll, lean, fat, nav]);
+    } catch (e) { setErr((e as Error).message); setStep(captureMethod === 'demo' ? 'manual' : 'camera'); }
+  }, [sleptPoorly, painOrIll, lean, fat, weight, asm, method, hasGrip, gripKg, nav]);
 
   const onCapture = useCallback((c: Capture) => save(c, 'phone-video'), [save]);
 
@@ -56,22 +80,83 @@ export function CheckFlow() {
     </Screen>
   );
 
+  const checkScan = () => {
+    const w = Number(weight), l = Number(lean), f = Number(fat);
+    if (!weight && !lean && !fat && !asm) return null;
+    if (!weight) return "Please enter today's weight. We need it to tell muscle loss from fat loss.";
+    if (w < 60 || w > 800) return 'Please enter a weight between 60 and 800 lb.';
+    if ((lean || fat || asm) && !method) return 'Please choose where these numbers came from.';
+    if (lean && (l < 30 || l >= w)) return 'Lean mass should be less than your weight. Check the number on your scan.';
+    if (fat && (f < 3 || f > 75)) return 'Body fat should be between 3% and 75%.';
+    if (lean && fat && Math.abs(l + (w * f) / 100 - w) > w * 0.08) return "Your lean mass and body fat don't add up to your weight. Check both numbers on your scan.";
+    return null;
+  };
+
   if (step === 'scan') return (
     <Screen back={{ to: '/', label: 'Cancel' }} footer={<>
-      <button className="rise-btn rise-btn--primary rise-btn--block" onClick={() => setStep('setup')}>{lean || fat ? 'Next' : 'Skip for now'}</button></>}>
-      <div className="stack"><div className="rise-label">Step 1 of 2 · Body scan</div><h1 className="display">Add your body scan</h1></div>
-      <p className="rise-body-lg">If you use a body scan app or smart scale, enter today's numbers. Phone body scanning is coming to Rise soon.</p>
+      <button className="rise-btn rise-btn--primary rise-btn--block" onClick={() => { const e = checkScan(); if (e) return setErr(e); setErr(null); setStep('grip'); }}>
+        {weight || lean ? 'Next' : 'Skip body scan'}</button></>}>
+      <div className="stack"><div className="rise-label">Step 1 of 3 · Muscle and fat</div><h1 className="display">Add today's body scan</h1></div>
+      <p className="rise-body-lg">Copy the numbers from your body scan app, smart scale or clinic scan. We compare how much of the weight you lose is muscle, not just how much you lose.</p>
+      <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="rise-label" style={{ marginBottom: 8 }}>Where are these numbers from?</legend>
+        <div className="rise-choices" role="radiogroup">
+          {METHODS.map(([v, label]) => (
+            <label className="rise-choice" key={v}><input type="radio" name="method" id={`method-${v}`} checked={method === v} onChange={() => { setErr(null); setMethod(v); }} /> {label}</label>
+          ))}
+        </div>
+      </fieldset>
+      {lastScan && method && method !== lastScan.bodyCompMethod && <p className="note">Last time you used a different device. We'll start a new comparison, because different devices give different numbers.</p>}
+      <div className="field"><label className="rise-label" htmlFor="weight">Today's weight (lb)</label><input id="weight" className="rise-num" inputMode="decimal" value={weight} onChange={(e) => { setErr(null); setWeight(e.target.value); }} /></div>
       <div className="two-col">
-        <div className="field"><label className="rise-label" htmlFor="lean">Lean mass (lb)</label><input id="lean" className="rise-num" inputMode="decimal" value={lean} onChange={(e) => setLean(e.target.value)} /></div>
-        <div className="field"><label className="rise-label" htmlFor="fat">Body fat (%)</label><input id="fat" className="rise-num" inputMode="decimal" value={fat} onChange={(e) => setFat(e.target.value)} /></div>
+        <div className="field"><label className="rise-label" htmlFor="lean">Lean mass (lb)</label><input id="lean" className="rise-num" inputMode="decimal" value={lean} onChange={(e) => { setErr(null); setLean(e.target.value); }} /></div>
+        <div className="field"><label className="rise-label" htmlFor="fat">Body fat (%)</label><input id="fat" className="rise-num" inputMode="decimal" value={fat} onChange={(e) => { setErr(null); setFat(e.target.value); }} /></div>
       </div>
+      <details>
+        <summary className="rise-label" style={{ cursor: 'pointer' }}>More from your scan (optional)</summary>
+        <div className="field" style={{ marginTop: 12 }}><label className="rise-label" htmlFor="asm">Arm and leg lean mass (kg)</label>
+          <input id="asm" className="rise-num" inputMode="decimal" value={asm} onChange={(e) => { setErr(null); setAsm(e.target.value); }} />
+          <span className="rise-caption">Some scans call this "appendicular lean mass" or "ALM".</span></div>
+      </details>
+      <p className="rise-caption" style={{ margin: 0 }}>Use the same device each time, at the same time of day, before eating. Lean mass includes muscle and water, so a single reading can move a little.</p>
+      <ErrorNote message={err} />
+    </Screen>
+  );
+
+  if (step === 'grip') return (
+    <Screen back={{ to: '/', label: 'Cancel' }} footer={<button className="rise-btn rise-btn--primary rise-btn--block" onClick={() => {
+      if (hasGrip) {
+        if (gripKg == null || gripKg < 2 || gripKg > 90) return setErr(gripUnit === 'kg' ? 'Enter your best grip between 2 and 90 kg.' : 'Enter your best grip between 5 and 198 lb.');
+      }
+      setErr(null); setStep('setup');
+    }}>{hasGrip && grip ? 'Next' : 'Skip grip test'}</button>}>
+      <div className="stack"><div className="rise-label">Step 2 of 3 · Grip (optional)</div><h1 className="display">Do you have a grip strength meter?</h1></div>
+      <div className="rise-choices" role="radiogroup">
+        <label className="rise-choice"><input type="radio" name="hasGrip" id="hasGrip-yes" checked={hasGrip === true} onChange={() => setHasGrip(true)} /> Yes</label>
+        <label className="rise-choice"><input type="radio" name="hasGrip" id="hasGrip-no" checked={hasGrip === false} onChange={() => { setHasGrip(false); setGrip(''); setErr(null); }} /> No, skip this</label>
+      </div>
+      {hasGrip ? (
+        <>
+          <ol className="stack" style={{ margin: 0, paddingLeft: 24 }}>
+            <li>Sit with your elbow bent at a right angle, close to your side.</li>
+            <li>Squeeze as hard as you can for 3 seconds.</li>
+            <li>Do 3 tries with your stronger hand, resting a minute between. Enter your best.</li>
+          </ol>
+          <div className="two-col">
+            <div className="field"><label className="rise-label" htmlFor="grip">Best grip</label><input id="grip" className="rise-num" inputMode="decimal" value={grip} onChange={(e) => { setErr(null); setGrip(e.target.value); }} /></div>
+            <div className="field"><label className="rise-label" htmlFor="gripUnit">Unit</label>
+              <select id="gripUnit" value={gripUnit} onChange={(e) => setGripUnit(e.target.value as 'kg' | 'lb')}><option value="kg">kg</option><option value="lb">lb</option></select></div>
+          </div>
+        </>
+      ) : <p className="rise-caption" style={{ margin: 0 }}>A grip test adds a second strength measure. A basic hand dynamometer costs about $25. Your check works fine without it.</p>}
+      <ErrorNote message={err} />
     </Screen>
   );
 
   if (step === 'setup') return (
     <Screen back={{ to: '/', label: 'Cancel' }} footer={<button className="rise-btn rise-btn--primary rise-btn--block"
       onClick={() => { say('Getting your camera ready.', { force: true }); setStep('camera'); }}>Open the camera</button>}>
-      <div className="stack"><div className="rise-label">Step 2 of 2 · Strength</div><h1 className="display">Set up your chair and phone</h1></div>
+      <div className="stack"><div className="rise-label">Step 3 of 3 · Leg strength</div><h1 className="display">Set up your chair and phone</h1></div>
       <ol className="stack" style={{ margin: 0, paddingLeft: 24 }}>
         <li>Use a firm chair without arms, about knee height, against a wall.</li>
         <li>Prop your phone at hip height, 2 to 3 steps away.</li>

@@ -43,6 +43,15 @@ const STEPS: Step[] = [
         <div className="field"><label className="rise-label" htmlFor="currentWeightLb">Now (lb)</label><input id="currentWeightLb" className="rise-num" inputMode="decimal" value={a.currentWeightLb ?? ''} onChange={(e) => s('currentWeightLb', e.target.value)} /></div>
         <div className="field"><label className="rise-label" htmlFor="startWeightLb">At start (lb)</label><input id="startWeightLb" className="rise-num" inputMode="decimal" value={a.startWeightLb ?? ''} onChange={(e) => s('startWeightLb', e.target.value)} /></div>
       </div>) },
+  { id: 'height', q: 'How tall are you?', why: 'Height lets us size your muscle measurements to your body.', valid: (a) => {
+      const ft = Number(a.heightFt), inch = Number(a.heightInch || 0);
+      return ft >= 4 && ft <= 7 && inch >= 0 && inch < 12 ? null : 'Please enter your height in feet and inches.';
+    },
+    render: (a, s) => (
+      <div className="two-col">
+        <div className="field"><label className="rise-label" htmlFor="heightFt">Feet</label><input id="heightFt" className="rise-num" inputMode="numeric" value={a.heightFt ?? ''} onChange={(e) => s('heightFt', e.target.value.replace(/\D/g, ''))} /></div>
+        <div className="field"><label className="rise-label" htmlFor="heightInch">Inches</label><input id="heightInch" className="rise-num" inputMode="numeric" value={a.heightInch ?? ''} onChange={(e) => s('heightInch', e.target.value.replace(/\D/g, ''))} /></div>
+      </div>) },
   { id: 'activity', q: 'How active are you in a typical week?', why: 'We match your exercise suggestions to where you are now.', valid: (a) => (a.activity ? null : 'Please choose an answer.'),
     render: (a, s) => <Choices name="activity" value={a.activity} onChange={(v) => s('activity', v)} options={[['rarely', 'I rarely exercise'], ['some', 'Some walking or light activity'], ['regular', 'Exercise 2 to 3 times a week'], ['very', 'Strength training most weeks']]} /> },
   { id: 'falls', q: 'Have you fallen in the past year?', why: 'This helps us decide how often to check in with you.', valid: (a) => (a.falls ? null : 'Please choose an answer.'),
@@ -75,7 +84,8 @@ export function Intake() {
     if (i < steps.length - 1) { setI(i + 1); window.scrollTo(0, 0); return; }
     setBusy(true);
     try {
-      const p = await api.createPatient({ ...a, age: Number(a.age), startWeightLb: Number(a.startWeightLb), currentWeightLb: Number(a.currentWeightLb) });
+      const p = await api.createPatient({ ...a, age: Number(a.age), startWeightLb: Number(a.startWeightLb), currentWeightLb: Number(a.currentWeightLb),
+        heightIn: Number(a.heightFt) * 12 + Number(a.heightInch || 0) });
       session.set(p.id);
       nav('/', { replace: true });
     } catch (ex) { setErr((ex as Error).message); setBusy(false); }

@@ -91,3 +91,15 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 16px; line-height
   background: var(--brand); color: var(--on-brand); font: 400 15px/22px var(--font-sans); }
 .demobar__links { display: flex; gap: var(--space-4); align-items: center; }
 .demobar a, .demobar button { color: var(--on-brand); font: 700 15px/22px var(--font-sans); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+
+/* Measures summary */
+.domains { list-style: none; margin: 0; padding: 0; }
+.domain { padding: var(--space-3) 0; border-bottom: 1px solid var(--line); display: grid; gap: var(--space-1); }
+.domain:last-child { border-bottom: 0; padding-bottom: 0; }
+.domain__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.domain__label { font: 700 18px/24px var(--font-sans); }
+.domain__line { margin: 0; font-size: 16px; line-height: 24px; }
+.reasons { margin: 0; padding-left: 20px; display: grid; gap: var(--space-2); font-size: 16px; line-height: 24px; }
+.mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.mini-stats > div { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.mini-stats b { display: block; font: 500 24px/30px var(--font-mono); }

@@ -2,7 +2,13 @@
 
 A monthly muscle check on the phone for people taking GLP-1 medications.
 
-A patient records a 30-second sit-to-stand test with their phone camera. Rise counts the stands on the device, compares the result with the patient's own baseline and with CDC STEADI norms for their age and sex, and tells them one thing to do next. When the plan isn't working, their care team is flagged.
+Each check combines three measures of muscle health into one result for the patient and their care team:
+
+- **Leg strength:** a 30-second sit-to-stand recorded and counted on the phone, compared with the patient's baseline and CDC STEADI norms.
+- **Muscle mass:** body composition from the patient's scan app, smart scale or DEXA. Rise tracks what share of the weight lost was lean mass, compared only within the same device.
+- **Grip (optional):** a home dynamometer reading, compared with EWGSOP2 cut-offs and the patient's first grip.
+
+Rise turns these into Steady, Watch or Check in, tells the patient one thing to do next, and flags their care team when the plan isn't working. How each result is decided, with every threshold and source, is in [`docs/evaluation.md`](docs/evaluation.md).
 
 <p>
   <img src="docs/screenshots/01-welcome.png" width="200" alt="Welcome screen">
@@ -18,13 +24,15 @@ A patient records a 30-second sit-to-stand test with their phone camera. Rise co
 - **Readiness check:** two questions before every check (sleep, pain or illness). A rough day never flags the provider on its own.
 - **Camera checks before recording:** lens smudge (image sharpness), too close, too far, side view, lighting, phone steady. One fix at a time, spoken and written. Recording starts by itself when everything passes.
 - **Sit-to-stand capture:** on-device pose tracking (MediaPipe), spoken countdown, stands counted aloud, 30-second timer, hip path drawn live. Captures where the legs weren't visible most of the time are rejected with a fix.
-- **Personalized result:** Steady, Watch or Check in, a verdict with the patient's name, change since baseline, trend chart, one action matched to their tier and limits (for example chair-based moves for knee pain), their own goal, and a retest date.
-- **Body scan:** optional manual entry of lean mass and body fat for now. A phone body-scan SDK (such as Prism Labs or Spren) plugs in here later.
+- **Personalized result:** Steady, Watch or Check in, a verdict with the patient's name, one plain-language line per measure, trend chart, one action matched to their tier, limits and the measure that changed (for example protein first when lean share is high), their own goal, and a retest date.
+- **Body composition:** today's weight, lean mass, body fat and optional arm-and-leg lean mass, with the device they came from. Entries are checked for consistency (lean mass under weight, lean plus fat adding up). A phone body-scan SDK (such as Prism Labs or Spren) can replace typing later.
+- **Grip test (optional):** instructions for a home dynamometer, best of 3, in kg or lb.
+- **Combined result:** one overall state from all measures, with escalation when two measures change at once or both strength tests are low.
 - A manual-count fallback when the camera can't be used, marked as self-reported for providers.
 
 **Provider dashboard**
 - Check-in list sorted by urgency, then risk tier; steady patients collapse into one line.
-- Patient report: trend against the STEADI norm, every check with capture method and confidence, readiness flags, body scan, the action given, risk tier with the reasons behind it, and setup answers.
+- Patient report: "Why this result" with every reason and its reference, leg strength trend against the STEADI norm, muscle mass (weight and lean change, lean share of loss, device), grip against EWGSOP2, every check with capture confidence and readiness flags, what the patient was told and sees, risk tier and setup answers.
 - Structured, record-ready export (one observation per check) as JSON.
 
 Product rules are in [`docs/product-principles.md`](docs/product-principles.md), screens in [`docs/screens.md`](docs/screens.md) and the visual system in [`docs/design-system.md`](docs/design-system.md).
@@ -60,7 +68,7 @@ The repo includes a `Dockerfile` and a `render.yaml`. On [Render](https://render
 npm test
 ```
 
-- `server/test/rules.test.js`: risk tiers, STEADI norms, Steady/Watch/Check-in rules, readiness flags and personalized copy.
+- `server/test/rules.test.js`: risk tiers, STEADI norms, lean share, same-device comparison, EWGSOP2 grip and muscle cut-offs, combining measures, readiness flags and personalized copy.
 - `server/test/api.test.js`: intake, checks and provider endpoints end to end.
 - `web/src/lib/__tests__`: rep counting, camera checks and image sharpness, light and motion measures.
 
@@ -78,4 +86,4 @@ docs/     Product principles, screens, design system, screenshots
 - **Clinical review.** Risk tiers and Watch/Check-in thresholds are drafts from customer discovery. Set them with clinical advisors.
 - **Validation.** Phone-video counting is labeled a pilot measure. Validate it against in-person 30-second chair stands, including older adults and people with obesity.
 - **Regulatory and privacy.** Have a regulatory advisor review the flagging logic, and complete a HIPAA review before storing real health data.
-- **Body scan.** Replace manual entry with a licensed phone body-scan SDK.
+- **Body scan and grip.** Replace typed entry with a licensed phone body-scan SDK and a Bluetooth dynamometer.

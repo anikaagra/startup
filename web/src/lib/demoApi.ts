@@ -1,35 +1,38 @@
 // In-browser stand-in for the Rise API, used by the shareable demo build (VITE_DEMO=1).
-// It runs the same rules engine as the server and keeps data in this browser only.
+// It runs the same rules engine and example data as the server and keeps data in this browser only.
 // @ts-expect-error plain JS module shared with the server
-import { computeTier, evaluateCheck, STATE_RANK, TIERS } from '../../../server/src/rules.js';
+import { computeTier, evaluateCheck, STATE_RANK, TIERS, METHOD_LABEL } from '../../../server/src/rules.js';
+// @ts-expect-error plain JS module shared with the server
+import { DEMO_PEOPLE, DEMO_DATES } from '../../../server/src/demoData.js';
 import type { Check, CheckResult, Patient, ProviderList } from './types';
 
-type Store = { providers: Record<string, string>; patients: Omit<Patient, 'checks' | 'nextDue' | 'checkEveryDays'>[]; checks: (Check & { patientId: string })[]; nextId: number };
-const KEY = 'rise.demo.v1';
+type Row = Check & { patientId: string };
+type Store = { providers: Record<string, string>; patients: Omit<Patient, 'checks' | 'nextDue' | 'checkEveryDays'>[]; checks: Row[]; nextId: number };
+const KEY = 'rise.demo.v2';
+
+function toRow(id: number, patientId: string, c: Record<string, unknown>, r: CheckResult): Row {
+  return {
+    id, patientId, createdAt: r.createdAt, stands: c.stands as number, durationSec: 30, confidence: (c.confidence as number) ?? null,
+    sleptPoorly: !!c.sleptPoorly, painOrIll: !!c.painOrIll, leanMassLb: (c.leanMassLb as number) ?? null, bodyFatPct: (c.bodyFatPct as number) ?? null,
+    method: (c.method as string) ?? 'phone-video', state: r.state, flagged: r.flagged, providerFlag: r.providerFlag, verdict: r.verdict,
+    action: r.action, reason: r.reason, retestDate: r.retestDate, belowNorm: r.belowNorm, normCutoff: r.normCutoff, normBand: r.normBand,
+    weightLb: (c.weightLb as number) ?? null, bodyCompMethod: (c.bodyCompMethod as Check['bodyCompMethod']) ?? null, asmKg: (c.asmKg as number) ?? null,
+    gripKg: (c.gripKg as number) ?? null, domains: r.domains, reasons: r.reasons,
+  };
+}
 
 function seed(): Store {
   const s: Store = { providers: { DEMO42: 'Bay Area Weight Care (demo)' }, patients: [], checks: [], nextId: 1 };
-  const people: [string, number, Patient['sex'], string | null, string, string, string, number, number, string, string, string, string, number[]][] = [
-    ['Linda', 67, 'female', 'yes', 'semaglutide', '1.7 mg', '2026-05-20', 228, 196, 'some', 'once', 'yes', 'garden again without help', [13, 11, 9]],
-    ['Maria', 62, 'female', 'yes', 'semaglutide', '1 mg', '2026-06-02', 205, 182, 'some', 'none', 'yes', 'keep up with my grandkids', [14, 14, 12]],
-    ['Dennis', 71, 'male', null, 'tirzepatide', '10 mg', '2026-04-11', 251, 219, 'regular', 'none', 'no', 'keep golfing', [13, 13, 12]],
-    ['Priya', 54, 'female', 'no', 'semaglutide', '2.4 mg', '2026-07-01', 190, 176, 'regular', 'none', 'no', 'hike Mission Peak', [16, 17, 17]],
-    ['James', 48, 'male', null, 'tirzepatide', '7.5 mg', '2026-06-15', 262, 238, 'very', 'none', 'no', 'play basketball with my son', [18, 19, 19]],
-    ['Rosa', 59, 'female', 'yes', 'semaglutide', '1.7 mg', '2026-05-05', 214, 190, 'some', 'none', 'no', 'travel to see my sister', [15, 16, 15]],
-  ];
-  const dates = ['2026-08-03T17:00:00.000Z', '2026-09-01T17:00:00.000Z', '2026-10-01T17:00:00.000Z'];
-  for (const [firstName, age, sex, menopause, medication, dose, startDate, sw, cw, activity, falls, jointPain, goal, stands] of people) {
-    const base = { firstName, age, sex, menopause, medication, dose, startDate, startWeightLb: sw, currentWeightLb: cw, activity, falls, jointPain, goal };
+  for (const [firstName, age, sex, menopause, medication, dose, startDate, sw, cw, activity, falls, jointPain, goal, heightIn, checks] of DEMO_PEOPLE) {
+    const base = { firstName, age, sex, menopause, medication, dose, startDate, startWeightLb: sw, currentWeightLb: cw, activity, falls, jointPain, goal, heightIn };
     const { tier, reasons } = computeTier(base);
-    const id = `demo-${firstName.toLowerCase()}`;
-    s.patients.push({ ...base, id, providerCode: 'DEMO42', tier, tierReasons: reasons, createdAt: dates[0] });
-    const hist: Check[] = [];
-    stands.forEach((n, i) => {
-      const r = evaluateCheck({ ...base, tier }, hist, { stands: n, createdAt: dates[i] });
-      const c = { id: s.nextId++, patientId: id, createdAt: dates[i], stands: n, durationSec: 30, confidence: 0.92, sleptPoorly: false, painOrIll: false,
-        leanMassLb: null, bodyFatPct: null, method: 'phone-video', state: r.state, flagged: r.flagged, providerFlag: r.providerFlag, verdict: r.verdict,
-        action: r.action, reason: r.reason, retestDate: r.retestDate, belowNorm: r.belowNorm, normCutoff: r.normCutoff, normBand: r.normBand };
-      s.checks.push(c); hist.push(c);
+    const id = `demo-${String(firstName).toLowerCase()}`;
+    s.patients.push({ ...base, id, providerCode: 'DEMO42', tier, tierReasons: reasons, createdAt: DEMO_DATES[0] });
+    const hist: Row[] = [];
+    (checks as [number, number, number, number | null][]).forEach(([stands, weightLb, leanMassLb, gripKg], i) => {
+      const c = { stands, weightLb, leanMassLb, gripKg, bodyCompMethod: 'smart-scale', confidence: 0.92, createdAt: DEMO_DATES[i], method: 'phone-video' };
+      const row = toRow(s.nextId++, id, c, evaluateCheck({ ...base, tier }, hist, c));
+      s.checks.push(row); hist.push(row);
     });
   }
   return s;
@@ -44,6 +47,7 @@ function load(): Store {
 function save() { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch { /* keep in memory only */ } }
 const fail = (m: string) => Promise.reject(new Error(m));
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
+const num = (v: unknown) => (v === '' || v == null ? null : Number(v));
 
 function full(id: string): Patient | null {
   const s = load();
@@ -66,7 +70,7 @@ export const demoApi = {
     const base = {
       firstName, age, sex: b.sex as Patient['sex'], menopause: b.sex === 'female' ? (b.menopause as string) ?? null : null,
       medication: (b.medication as string) || null, dose: (b.dose as string) || null, startDate: (b.startDate as string) || null,
-      startWeightLb: Number(b.startWeightLb) || null, currentWeightLb: Number(b.currentWeightLb) || null,
+      startWeightLb: num(b.startWeightLb), currentWeightLb: num(b.currentWeightLb), heightIn: num(b.heightIn),
       activity: (b.activity as string) || null, falls: (b.falls as string) || null, jointPain: (b.jointPain as string) || null, goal: String(b.goal ?? '').trim() || null,
     };
     const { tier, reasons } = computeTier(base);
@@ -80,13 +84,13 @@ export const demoApi = {
     const s = load();
     const p = full(id);
     if (!p) return fail('Patient not found');
-    const stands = Number(b.stands);
-    if (!Number.isInteger(stands) || stands < 0 || stands > 40) return fail('Stands must be a whole number from 0 to 40.');
-    const r = evaluateCheck(p, p.checks, { stands, sleptPoorly: !!b.sleptPoorly, painOrIll: !!b.painOrIll });
-    s.checks.push({ id: s.nextId++, patientId: id, createdAt: r.createdAt, stands, durationSec: 30, confidence: (b.confidence as number) ?? null,
-      sleptPoorly: !!b.sleptPoorly, painOrIll: !!b.painOrIll, leanMassLb: (b.leanMassLb as number) ?? null, bodyFatPct: (b.bodyFatPct as number) ?? null,
-      method: b.method === 'demo' ? 'demo' : 'phone-video', state: r.state, flagged: r.flagged, providerFlag: r.providerFlag, verdict: r.verdict,
-      action: r.action, reason: r.reason, retestDate: r.retestDate, belowNorm: r.belowNorm, normCutoff: r.normCutoff, normBand: r.normBand });
+    const c = { ...b, stands: Number(b.stands), weightLb: num(b.weightLb), leanMassLb: num(b.leanMassLb), bodyFatPct: num(b.bodyFatPct),
+      asmKg: num(b.asmKg), gripKg: num(b.gripKg), bodyCompMethod: typeof b.bodyCompMethod === 'string' && b.bodyCompMethod in METHOD_LABEL ? b.bodyCompMethod : null };
+    if (!Number.isInteger(c.stands) || c.stands < 0 || c.stands > 40) return fail('Stands must be a whole number from 0 to 40.');
+    if (c.leanMassLb != null && c.weightLb != null && c.leanMassLb >= c.weightLb) return fail('Lean mass must be less than your weight. Check the numbers from your scan.');
+    if (c.leanMassLb != null && !c.bodyCompMethod) return fail('Please choose where your body composition numbers came from.');
+    const r = evaluateCheck(p, p.checks, c) as CheckResult;
+    s.checks.push(toRow(s.nextId++, id, c, r));
     save();
     return delay({ ...r, patient: full(id)! });
   },
@@ -95,14 +99,16 @@ export const demoApi = {
     const c = code.toUpperCase();
     if (!s.providers[c]) return fail('Provider code not found');
     const today = new Date().toISOString().slice(0, 10);
+    const rank = STATE_RANK as Record<string, number>;
     const patients = s.patients.filter((p) => p.providerCode === c).map((x) => full(x.id)!).map((p) => {
       const last = p.checks[p.checks.length - 1];
       return { id: p.id, firstName: p.firstName, age: p.age, sex: p.sex, medication: p.medication, startDate: p.startDate, tier: p.tier,
         state: last?.state ?? null, flagged: last?.flagged ?? false, lastCheck: last?.createdAt ?? null, recent: p.checks.slice(-3).map((k) => k.stands),
         latest: last?.stands ?? null, belowNorm: last?.belowNorm ?? false, normCutoff: last?.normCutoff ?? null, normBand: last?.normBand ?? null,
-        overdue: last ? last.retestDate < today : true };
+        overdue: last ? last.retestDate < today : true, massState: last?.domains?.mass?.state ?? null, leanShare: last?.domains?.mass?.leanShare ?? null,
+        gripState: last?.domains?.grip?.state ?? null, gripKg: last?.gripKg ?? null, reasons: last?.reasons ?? [] };
     });
-    patients.sort((a, b) => ((STATE_RANK as Record<string, number>)[a.state ?? ''] ?? 3) - ((STATE_RANK as Record<string, number>)[b.state ?? ''] ?? 3)
+    patients.sort((a, b) => (rank[a.state ?? ''] ?? 3) - (rank[b.state ?? ''] ?? 3)
       || (a.tier === 'higher' ? 0 : 1) - (b.tier === 'higher' ? 0 : 1) || String(b.lastCheck).localeCompare(String(a.lastCheck)));
     return delay({ code: c, name: s.providers[c], patients });
   },

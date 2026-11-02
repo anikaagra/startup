@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Screen, ErrorNote } from '../../components/Screen';
 import { StatusSignal } from '../../components/StatusSignal';
 import { RiseTrace } from '../../components/RiseTrace';
+import { DomainSummary } from '../../components/DomainSummary';
 import { api } from '../../lib/api';
 import { session } from '../../lib/session';
 import { fmtDate, today } from '../../lib/format';
@@ -45,6 +46,7 @@ export function Home() {
           <p className="rise-body-lg">{last.action}</p>
         </section>
       )}
+      {last?.domains && <DomainSummary domains={last.domains} title="How each measure is doing" />}
 
       {p.checks.length > 0 && (
         <section className="rise-card" aria-labelledby="history">

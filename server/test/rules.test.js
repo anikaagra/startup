@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeTier, evaluateCheck } from '../src/rules.js';
+import { computeTier, evaluateCheck, evaluateMass, evaluateGrip } from '../src/rules.js';
 import { normFor } from '../src/norms.js';
 
 const maria = { firstName: 'Maria', age: 62, sex: 'female', tier: 'standard', goal: 'keep up with my grandkids', jointPain: 'yes', activity: 'some' };
@@ -80,4 +80,91 @@ test('copy is personalized with name, goal and limits', () => {
   assert.match(r.verdict, /^Maria/);
   assert.match(r.action, /chair strength routine/);
   assert.match(r.reason, /keep up with your grandkids/);
+  assert.match(r.reason, /Based on your leg strength/);
+});
+
+// ---- Body composition ----
+const scan = (stands, weightLb, leanMassLb, extra = {}) => ({ stands, weightLb, leanMassLb, bodyCompMethod: 'smart-scale', ...extra });
+const seq = (p, list) => { const h = []; let r; list.forEach((c, i) => { r = evaluateCheck(p, h, { ...c, createdAt: `2026-0${i + 1}-01T00:00:00Z` }); h.push({ ...c, ...r }); }); return r; };
+
+test('lean share in the trial range (20-40%) is steady', () => {
+  const r = seq(maria, [scan(14, 200, 110), scan(14, 190, 107)]); // 3 of 10 lb = 30%
+  assert.equal(r.domains.mass.leanShare, 0.3);
+  assert.equal(r.domains.mass.state, 'steady');
+  assert.equal(r.state, 'steady');
+});
+
+test('lean share above 40% is watch; above 60% is check in', () => {
+  assert.equal(seq(maria, [scan(14, 200, 110), scan(14, 190, 105)]).domains.mass.state, 'watch');
+  const r = seq(maria, [scan(14, 200, 110), scan(14, 190, 103)]);
+  assert.equal(r.domains.mass.state, 'checkin');
+  assert.equal(r.state, 'checkin');
+  assert.match(r.reasons.join(' '), /70% of weight lost/);
+});
+
+test('lean share is not judged until enough weight is lost', () => {
+  const r = seq(maria, [scan(14, 200, 110), scan(14, 197, 108)]); // only 3 lb
+  assert.equal(r.domains.mass.leanShare, null);
+  assert.equal(r.domains.mass.state, 'steady');
+  assert.match(r.domains.mass.patientLine, /Not enough weight change/);
+});
+
+test('scans from different methods are never compared', () => {
+  const r = seq(maria, [scan(14, 200, 110), { ...scan(14, 190, 100), bodyCompMethod: 'dexa' }]);
+  assert.equal(r.domains.mass.leanShare, null);
+  assert.match(r.domains.mass.patientLine, /starting point for the DEXA scan/);
+});
+
+test('missing body comp leaves the mass domain unmeasured and does not change the result', () => {
+  const r = seq(maria, [{ stands: 14 }, { stands: 14 }]);
+  assert.equal(r.domains.mass.measured, false);
+  assert.equal(r.state, 'steady');
+});
+
+test('low appendicular muscle index (EWGSOP2) is watch', () => {
+  const p = { ...maria, heightIn: 63 }; // 1.60 m
+  const m = evaluateMass(p, [], scan(14, 180, 95, { asmKg: 13 })); // 13 / 2.56 = 5.1 < 5.5
+  assert.equal(m.lowMuscle, true);
+  assert.equal(m.state, 'watch');
+});
+
+// ---- Grip ----
+test('grip below the EWGSOP2 cut-off is watch; women 16 kg, men 27 kg', () => {
+  assert.equal(evaluateGrip(maria, [], { gripKg: 15 }).state, 'watch');
+  assert.equal(evaluateGrip(maria, [], { gripKg: 20 }).state, 'steady');
+  assert.equal(evaluateGrip({ ...maria, sex: 'male' }, [], { gripKg: 25 }).state, 'watch');
+});
+
+test('grip drop of 10% is watch and 20% is check in', () => {
+  assert.equal(evaluateGrip(maria, [{ gripKg: 25 }], { gripKg: 22 }).state, 'watch');
+  assert.equal(evaluateGrip(maria, [{ gripKg: 25 }], { gripKg: 19.5 }).state, 'checkin');
+  assert.equal(evaluateGrip(maria, [{ gripKg: 25 }], { gripKg: 24 }).state, 'steady');
+});
+
+// ---- Combining ----
+test('two measures on watch at once escalates to check in', () => {
+  const r = seq(maria, [scan(14, 200, 110, { gripKg: 25 }), scan(14, 190, 105.5, { gripKg: 22 })]);
+  assert.equal(r.domains.mass.state, 'watch');
+  assert.equal(r.domains.grip.state, 'watch');
+  assert.equal(r.state, 'checkin');
+  assert.ok(r.reasons.includes('Two measures changed at the same check'));
+});
+
+test('low on both strength tests is check in', () => {
+  const r = seq(maria, [{ stands: 11, gripKg: 15 }]);
+  assert.equal(r.state, 'checkin');
+  assert.ok(r.reasons.some((x) => /both strength tests/.test(x)));
+});
+
+test('a mass-driven watch gives a protein-first action', () => {
+  const r = seq(maria, [scan(14, 200, 110), scan(14, 190, 105)]);
+  assert.equal(r.state, 'watch');
+  assert.match(r.action, /protein at every meal/);
+  assert.match(r.reason, /Based on your body scan/);
+});
+
+test('readiness flag still overrides a combined check in', () => {
+  const r = seq(maria, [scan(14, 200, 110), scan(14, 190, 103, { painOrIll: true })]);
+  assert.equal(r.state, 'watch');
+  assert.equal(r.providerFlag, false);
 });
